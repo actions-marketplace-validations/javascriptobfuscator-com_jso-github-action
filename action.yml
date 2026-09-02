@@ -1,0 +1,1187 @@
+name: "JavaScript Obfuscator"
+description: "Protect built JavaScript assets with JavaScript Obfuscator. Wraps the jso-protector npm CLI; tags every build with the commit SHA; optional AI compatibility gate, source-free release evidence, runtime incident evidence, payment-page script/header evidence, HMAC watermark, and Ed25519-signed release attestation."
+author: "JavaScript Obfuscator"
+branding:
+  icon: "shield"
+  color: "blue"
+
+inputs:
+  input:
+    description: "Folder containing built JavaScript to protect (e.g. dist)."
+    required: true
+    default: "dist"
+  output:
+    description: "Folder to write protected JavaScript to."
+    required: true
+    default: "dist-protected"
+  preset:
+    description: "Protection preset: standard | balanced | maximum."
+    required: false
+    default: "balanced"
+  local:
+    description: "Protect on the runner instead of sending source to the hosted API. Windows runners only: it drives cli/jso-local.exe from the desktop download, which a previous step must place on the runner. A source-free plan check still runs."
+    required: false
+    default: "false"
+  local-exe:
+    description: "Path to cli/jso-local.exe when 'local' is true. Defaults to the JSO_LOCAL_EXE environment variable, then the usual desktop install locations."
+    required: false
+    default: ""
+  config:
+    description: "Path to a jso.config.json (overrides input/output/preset when present)."
+    required: false
+    default: ""
+  api-key:
+    description: "Base64-encoded JSO API key. Recommended source: ${{ secrets.JSO_API_KEY }}."
+    required: true
+  api-password:
+    description: "Base64-encoded JSO API password. Recommended source: ${{ secrets.JSO_API_PASSWORD }}."
+    required: true
+  endpoint:
+    description: "HTTP API endpoint. Override only for staging or self-hosted endpoints."
+    required: false
+    default: "https://javascriptobfuscator.com/HttpApi.ashx"
+  label:
+    description: "Release label tagged on the request. Defaults to ${{ github.sha }} so the JSO audit log groups builds by commit."
+    required: false
+    default: ""
+  cli-version:
+    description: "jso-protector version to install. 'latest' uses the published latest; pin to a specific version for reproducible builds."
+    required: false
+    default: "latest"
+  report:
+    description: "Optional path to write the full API report JSON. Useful as a build artifact for later stack-trace symbolication."
+    required: false
+    default: ""
+  release-check:
+    description: "When 'true', runs --release-check --json before protection and writes a source-free CI preflight report."
+    required: false
+    default: "false"
+  release-check-report:
+    description: "Optional path to write the --release-check JSON report. Defaults to a temporary file when release-check is enabled."
+    required: false
+    default: ""
+  competitor-gap-report:
+    description: "When 'true', runs --competitor-gap-report --json before protection to surface migration parity gaps against common JavaScript obfuscators."
+    required: false
+    default: "false"
+  competitor-gap-report-path:
+    description: "Optional path to write the competitor gap JSON report. Defaults to a temporary file when competitor-gap-report is enabled."
+    required: false
+    default: ""
+  migration-review:
+    description: "When 'true', runs --migration-review before protection to write one source-free owner checklist for accepted competitor-only fields."
+    required: false
+    default: "false"
+  migration-review-report:
+    description: "Optional path to write the migration review JSON report. Defaults to a temporary file when migration-review is enabled."
+    required: false
+    default: ""
+  payment-script-inventory:
+    description: "Path to the approved payment-page script inventory JSON/CSV. When set with runtime-inventory-snapshot, runs a source-free script inventory audit before protection."
+    required: false
+    default: ""
+  runtime-inventory-snapshot:
+    description: "Path to a saved third-party-inventory runtime snapshot JSON. Required when payment-script-inventory is set."
+    required: false
+    default: ""
+  script-inventory-audit-report:
+    description: "Optional path to write the payment-page script inventory audit JSON report. Defaults to a temporary file when the audit runs."
+    required: false
+    default: ""
+  payment-page-har:
+    description: "Path to a browser or synthetic-monitor HAR export for checkout/payment pages. When set, converts security headers into a source-free evidence snapshot before protection."
+    required: false
+    default: ""
+  payment-page-headers-baseline:
+    description: "Path to the previous approved payment-page security-header JSON snapshot. When set, the generated snapshot marks match, mismatch, or missing baseline pages."
+    required: false
+    default: ""
+  payment-page-url-pattern:
+    description: "Optional JavaScript regular expression used to keep only matching HAR page URLs when generating payment-page security-header evidence."
+    required: false
+    default: ""
+  payment-page-headers-report:
+    description: "Optional path to write the payment-page security-header JSON snapshot. Defaults to a temporary file when payment-page-har is set."
+    required: false
+    default: ""
+  source-map-evidence:
+    description: "When 'true', writes a source-free post-protection report proving the manifest verifies and no protected artifact exposes .map files or sourceMappingURL comments."
+    required: false
+    default: "false"
+  source-map-evidence-report:
+    description: "Optional path to write the source-map evidence JSON report. Defaults to a temporary file when source-map-evidence is enabled."
+    required: false
+    default: ""
+  runtime-incident-export:
+    description: "Path to a Dashboard Monitoring runtime incident CSV/JSON export. When set, writes a source-free runtime incident evidence report and fails on active high/critical packets."
+    required: false
+    default: ""
+  runtime-incident-evidence-report:
+    description: "Optional path to write the runtime incident evidence JSON report. Defaults to a temporary file when runtime-incident-export is set."
+    required: false
+    default: ""
+  pci-dss-v4-evidence:
+    description: "When 'true', assembles a source-free PCI DSS v4.0.1 evidence report after protection from the manifest plus optional payment-page, runtime, beacon, and SIEM evidence."
+    required: false
+    default: "false"
+  pci-dss-v4-report:
+    description: "Optional path to write the PCI DSS v4 Markdown evidence report. Defaults to a temporary file when pci-dss-v4-evidence is enabled."
+    required: false
+    default: ""
+  pci-dss-v4-json-report:
+    description: "Optional path to write the PCI DSS v4 JSON evidence report. Defaults to a temporary file when pci-dss-v4-evidence is enabled."
+    required: false
+    default: ""
+  pci-dss-v4-organization:
+    description: "Customer or account name to show in the PCI DSS v4 evidence report header."
+    required: false
+    default: ""
+  pci-dss-v4-root:
+    description: "Protected artifact root to re-hash for PCI DSS v4 evidence. Defaults to the action output folder; set this when config points output somewhere else."
+    required: false
+    default: ""
+  pci-dss-v4-beacon-url:
+    description: "Runtime Defense beacon URL to cite in PCI DSS v4 change-detection evidence."
+    required: false
+    default: ""
+  pci-dss-v4-siem:
+    description: "Customer-owned alert destination to cite in PCI DSS v4 evidence: splunk-hec, elasticsearch, or webhook."
+    required: false
+    default: ""
+  pci-dss-v4-allow-unsigned:
+    description: "When 'true', allows an unsigned manifest so the action can write an incomplete PCI report; the report still exits nonzero until signing evidence is present."
+    required: false
+    default: "false"
+  vm-proof-pack:
+    description: "When 'true', writes a source-free VM proof pack from the saved API report after protection. Fails when required VM evidence is missing."
+    required: false
+    default: "false"
+  vm-proof-pack-report:
+    description: "Optional path to write the VM proof pack JSON report. Defaults to a temporary file when vm-proof-pack is enabled."
+    required: false
+    default: ""
+  ai-resistance-evidence:
+    description: "When 'true', writes a source-free AI-resistance evidence packet from the saved API report after protection. Does not call an AI provider."
+    required: false
+    default: "false"
+  ai-resistance-evidence-report:
+    description: "Optional path to write the AI-resistance evidence JSON report. Defaults to a temporary file when ai-resistance-evidence is enabled."
+    required: false
+    default: ""
+  ai-resistance-require-vm-proof:
+    description: "When 'true', makes AI-resistance evidence fail unless the saved API report also contains passing VM proof."
+    required: false
+    default: "false"
+  min-vm-functions:
+    description: "Minimum virtualized function count required by VM proof pack and AI-resistance evidence gates."
+    required: false
+    default: "1"
+  manifest:
+    description: "Optional path to write the protection manifest JSON. Required when sign-release-key is also set (the .sig file goes next to it)."
+    required: false
+    default: ""
+  # --- supply-chain integrity inputs (all opt-in) -----------------------
+  ai-precheck:
+    description: "When 'true', runs the AI compat-check on every input file before the obfuscation API call. Aborts the build on error-level findings without consuming obfuscation quota. Defaults to false."
+    required: false
+    default: "false"
+  ai-precheck-fail-on:
+    description: "Gate level for ai-precheck: error (default), warning, or never."
+    required: false
+    default: "error"
+  estimate:
+    description: "When 'true', runs --estimate before the build to read current AI quota. Aborts when actionsRemaining=0. Set to 'warn' to log but not block, 'false' (default) to skip."
+    required: false
+    default: "false"
+  watermark:
+    description: "Tag to embed as an HMAC-SHA256 watermark in every protected file. Common: ${{ github.sha }} or ${{ github.run_id }}. Leave blank to skip watermarking."
+    required: false
+    default: ""
+  watermark-key:
+    description: "HMAC secret for the watermark. Recommended source: ${{ secrets.JSO_WATERMARK_KEY }}. Required when watermark is set."
+    required: false
+    default: ""
+  sign-release-key:
+    description: "Path to Ed25519 private key (.priv.pem) for release attestation. When set, the action writes a .manifest.json.sig alongside the manifest. Generate with 'npx jso-protector --genkey-release <name>'."
+    required: false
+    default: ""
+
+outputs:
+  build-id:
+    description: "BuildId returned by the API. Save this somewhere your runtime crash reporter can read it."
+    value: ${{ steps.run.outputs.build-id }}
+  polymorphism-fingerprint:
+    description: "Short fingerprint over the protected output. Two builds of the same input should never share a fingerprint."
+    value: ${{ steps.run.outputs.polymorphism-fingerprint }}
+  report-path:
+    description: "Path to the saved full API report JSON written by the protection step."
+    value: ${{ steps.run.outputs.report-path }}
+  release-check-report:
+    description: "Path to the --release-check JSON report when release-check was enabled."
+    value: ${{ steps.release-check.outputs.release-check-report }}
+  competitor-gap-report-path:
+    description: "Path to the --competitor-gap-report JSON report when competitor-gap-report was enabled."
+    value: ${{ steps.competitor-gap.outputs.competitor-gap-report-path }}
+  migration-review-report:
+    description: "Path to the source-free migration review JSON report when migration-review was enabled."
+    value: ${{ steps.migration-review.outputs.migration-review-report }}
+  script-inventory-audit-report:
+    description: "Path to the source-free payment-page script inventory audit JSON report when enabled."
+    value: ${{ steps.script-inventory-audit.outputs.script-inventory-audit-report }}
+  payment-page-headers-report:
+    description: "Path to the source-free payment-page security-header JSON snapshot when payment-page-har was set."
+    value: ${{ steps.payment-page-headers.outputs.payment-page-headers-report }}
+  source-map-evidence-report:
+    description: "Path to the source-free source-map evidence JSON report when source-map-evidence was enabled."
+    value: ${{ steps.source-map-evidence.outputs.source-map-evidence-report }}
+  runtime-incident-evidence-report:
+    description: "Path to the source-free runtime incident evidence JSON report when runtime-incident-export was set."
+    value: ${{ steps.runtime-incident-evidence.outputs.runtime-incident-evidence-report }}
+  pci-dss-v4-report:
+    description: "Path to the source-free PCI DSS v4 Markdown evidence report when pci-dss-v4-evidence was enabled."
+    value: ${{ steps.pci-dss-v4-evidence.outputs.pci-dss-v4-report }}
+  pci-dss-v4-json-report:
+    description: "Path to the source-free PCI DSS v4 JSON evidence report when pci-dss-v4-evidence was enabled."
+    value: ${{ steps.pci-dss-v4-evidence.outputs.pci-dss-v4-json-report }}
+  vm-proof-pack-report:
+    description: "Path to the source-free VM proof pack JSON report when vm-proof-pack was enabled."
+    value: ${{ steps.vm-proof-pack.outputs.vm-proof-pack-report }}
+  ai-resistance-evidence-report:
+    description: "Path to the source-free AI-resistance evidence JSON report when ai-resistance-evidence was enabled."
+    value: ${{ steps.ai-resistance-evidence.outputs.ai-resistance-evidence-report }}
+  watermark-tag:
+    description: "The tag embedded in the watermark (if any). Echoed back so downstream steps can publish it."
+    value: ${{ steps.run.outputs.watermark-tag }}
+  release-sig-path:
+    description: "Path to the signed release attestation (.manifest.json.sig), when sign-release-key was set."
+    value: ${{ steps.run.outputs.release-sig-path }}
+
+runs:
+  using: "composite"
+  steps:
+    - name: "Install jso-protector"
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ "${{ inputs.cli-version }}" = "latest" ]; then
+          npm install --no-save --no-audit --no-fund jso-protector
+        else
+          npm install --no-save --no-audit --no-fund "jso-protector@${{ inputs.cli-version }}"
+        fi
+
+    - name: "Estimate quota (optional pre-flight)"
+      if: ${{ inputs.estimate != 'false' && inputs.estimate != '' }}
+      shell: bash
+      env:
+        JSO_API_KEY: ${{ inputs.api-key }}
+        JSO_API_PASSWORD: ${{ inputs.api-password }}
+        JSO_ENDPOINT: ${{ inputs.endpoint }}
+      run: |
+        set -euo pipefail
+        # 'warn' mode: run the estimate but do not propagate exit 1 to the
+        # workflow. 'true' (default for opt-in) lets a quota-exhausted
+        # build fail fast at the gate.
+        args=("--endpoint" "${{ inputs.endpoint }}" "--api-key" "${{ inputs.api-key }}" "--api-password" "${{ inputs.api-password }}")
+        if [ -n "${{ inputs.config }}" ]; then
+          args+=("--config" "${{ inputs.config }}")
+        else
+          args+=("--input" "${{ inputs.input }}" "--output" "${{ inputs.output }}")
+        fi
+        args+=("--estimate")
+        echo "::group::jso-protector --estimate"
+        if [ "${{ inputs.estimate }}" = "warn" ]; then
+          npx jso-protector "${args[@]}" || true
+        else
+          npx jso-protector "${args[@]}"
+        fi
+        echo "::endgroup::"
+
+    - name: "Release check (optional pre-flight)"
+      id: release-check
+      if: ${{ inputs.release-check == 'true' }}
+      shell: bash
+      env:
+        JSO_API_KEY: ${{ inputs.api-key }}
+        JSO_API_PASSWORD: ${{ inputs.api-password }}
+        JSO_ENDPOINT: ${{ inputs.endpoint }}
+      run: |
+        set -euo pipefail
+        args=("--endpoint" "${{ inputs.endpoint }}")
+        if [ -n "${{ inputs.config }}" ]; then
+          args+=("--config" "${{ inputs.config }}")
+        else
+          args+=("--input" "${{ inputs.input }}" "--output" "${{ inputs.output }}" "--preset" "${{ inputs.preset }}")
+        fi
+
+        report_path="${{ inputs.release-check-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-release-check.XXXXXX.json)"
+        fi
+
+        echo "::group::jso-protector --release-check"
+        if npx jso-protector "${args[@]}" --release-check --json > "$report_path"; then
+          cat "$report_path"
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then cat "$report_path"; fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "release-check-report=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "Competitor gap report (optional pre-flight)"
+      id: competitor-gap
+      if: ${{ inputs.competitor-gap-report == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        args=()
+        if [ -n "${{ inputs.config }}" ]; then
+          args+=("--config" "${{ inputs.config }}")
+        else
+          args+=("--input" "${{ inputs.input }}" "--output" "${{ inputs.output }}" "--preset" "${{ inputs.preset }}")
+        fi
+
+        report_path="${{ inputs.competitor-gap-report-path }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-competitor-gap.XXXXXX.json)"
+        fi
+
+        echo "::group::jso-protector --competitor-gap-report"
+        if npx jso-protector "${args[@]}" --competitor-gap-report --json > "$report_path"; then
+          cat "$report_path"
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then cat "$report_path"; fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "competitor-gap-report-path=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "Migration review (optional pre-flight)"
+      id: migration-review
+      if: ${{ inputs.migration-review == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        args=()
+        if [ -n "${{ inputs.config }}" ]; then
+          args+=("--config" "${{ inputs.config }}")
+        else
+          args+=("--input" "${{ inputs.input }}" "--output" "${{ inputs.output }}" "--preset" "${{ inputs.preset }}")
+        fi
+
+        report_path="${{ inputs.migration-review-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-migration-review.XXXXXX.json)"
+        fi
+
+        echo "::group::jso-protector --migration-review"
+        if npx jso-protector "${args[@]}" --migration-review --migration-review-output "$report_path" --json; then
+          cat "$report_path"
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then cat "$report_path"; fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "migration-review-report=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "Payment-page script inventory audit (optional pre-flight)"
+      id: script-inventory-audit
+      if: ${{ inputs.payment-script-inventory != '' || inputs.runtime-inventory-snapshot != '' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        if [ -z "${{ inputs.payment-script-inventory }}" ] || [ -z "${{ inputs.runtime-inventory-snapshot }}" ]; then
+          echo "::error::payment-script-inventory and runtime-inventory-snapshot must be set together."
+          exit 2
+        fi
+
+        report_path="${{ inputs.script-inventory-audit-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-script-inventory-audit.XXXXXX.json)"
+        fi
+
+        emit_audit_summary() {
+          node - "$report_path" <<'NODE'
+        const fs = require("node:fs");
+        const reportPath = process.argv[2];
+
+        function esc(value) {
+          return String(value || "")
+            .replace(/%/g, "%25")
+            .replace(/\r/g, "%0D")
+            .replace(/\n/g, "%0A");
+        }
+
+        function metric(name, value) {
+          return `| ${name} | ${value == null ? 0 : value} |`;
+        }
+
+        function findingRows(report) {
+          const findings = report.findings || {};
+          const sections = [
+            ["unknown observed", findings.unknownObserved],
+            ["unauthorized observed", findings.unauthorizedObserved],
+            ["integrity mismatch", findings.integrityMismatches],
+            ["missing approved", findings.missingApproved],
+            ["late injection", findings.injectedAfterLoad],
+            ["runtime violation", findings.runtimeViolations],
+            ["inventory metadata", findings.inventoryGaps],
+            ["duplicate inventory", findings.duplicateApproved]
+          ];
+          const rows = [];
+          for (const [label, items] of sections) {
+            for (const item of Array.isArray(items) ? items : []) {
+              rows.push({ label, item });
+            }
+          }
+          return rows;
+        }
+
+        try {
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const summary = report.summary || {};
+          const lines = [
+            "### JSO Payment-Page Script Inventory Audit",
+            "",
+            `Status: ${report.ok ? "PASS" : "NEEDS REVIEW"}`,
+            "",
+            "| Metric | Value |",
+            "|---|---:|",
+            metric("Approved scripts", summary.approvedScripts),
+            metric("Observed scripts", summary.observedScripts),
+            metric("Unknown observed", summary.unknownObserved),
+            metric("Unauthorized observed", summary.unauthorizedObserved),
+            metric("Integrity mismatches", summary.integrityMismatches),
+            metric("Missing approved", summary.missingApproved),
+            metric("Late injected", summary.injectedAfterLoad),
+            metric("Runtime violations", summary.runtimeViolations),
+            metric("Inventory metadata gaps", summary.inventoryGaps),
+            metric("Blocking issues", summary.blockingIssues),
+            "",
+            `Report artifact: \`${reportPath}\``,
+            ""
+          ];
+
+          const stepSummary = process.env.GITHUB_STEP_SUMMARY;
+          if (stepSummary) fs.appendFileSync(stepSummary, lines.join("\n") + "\n");
+
+          const rows = findingRows(report);
+          if (rows.length === 0) {
+            console.log("::notice title=JSO payment-page audit::Approved inventory matches the observed runtime snapshot.");
+          } else {
+            for (const row of rows.slice(0, 10)) {
+              const item = row.item || {};
+              const source = item.source || item.firstSource || "unknown source";
+              const detail = item.detail || "Needs review.";
+              console.log(`::error title=JSO payment-page audit::${esc(row.label + ": " + source + " - " + detail)}`);
+            }
+            if (rows.length > 10) {
+              console.log(`::warning title=JSO payment-page audit::${rows.length - 10} additional audit finding(s) are listed in ${esc(reportPath)}.`);
+            }
+          }
+        } catch (error) {
+          console.log(`::warning title=JSO payment-page audit::Could not summarize audit report: ${esc(error.message)}`);
+        }
+        NODE
+        }
+
+        echo "::group::jso-protector --script-inventory-audit"
+        if npx jso-protector \
+          --script-inventory-audit "${{ inputs.payment-script-inventory }}" \
+          --runtime-inventory-snapshot "${{ inputs.runtime-inventory-snapshot }}" \
+          --script-inventory-audit-output "$report_path" \
+          --json; then
+          cat "$report_path"
+          emit_audit_summary
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then
+            cat "$report_path"
+            emit_audit_summary
+          fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "script-inventory-audit-report=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "Payment-page security-header snapshot (optional pre-flight)"
+      id: payment-page-headers
+      if: ${{ inputs.payment-page-har != '' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        report_path="${{ inputs.payment-page-headers-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-payment-page-headers.XXXXXX.json)"
+        fi
+
+        emit_header_summary() {
+          node - "$report_path" <<'NODE'
+        const fs = require("node:fs");
+        const reportPath = process.argv[2];
+
+        function esc(value) {
+          return String(value || "")
+            .replace(/%/g, "%25")
+            .replace(/\r/g, "%0D")
+            .replace(/\n/g, "%0A");
+        }
+
+        function metric(name, value) {
+          return `| ${name} | ${value == null ? 0 : value} |`;
+        }
+
+        try {
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const summary = report.summary || {};
+          const pages = Array.isArray(report.pages) ? report.pages.length : (summary.pages || 0);
+          const domains = Array.isArray(summary.domains) && summary.domains.length ? summary.domains.join(", ") : "none";
+          const source = report.source || {};
+          const lines = [
+            "### JSO Payment-Page Security Headers",
+            "",
+            "Status: PASS",
+            "",
+            "| Metric | Value |",
+            "|---|---:|",
+            metric("Matched pages/frames", pages),
+            metric("Content-Security-Policy", summary.withCsp),
+            metric("CSP report-only", summary.withReportOnlyCsp),
+            metric("HSTS", summary.withHsts),
+            metric("Reporting endpoint", summary.withReportEndpoint),
+            metric("Baseline matches", summary.baselineMatches),
+            metric("Baseline mismatches", summary.baselineMismatches),
+            metric("Baseline missing", summary.baselineMissing),
+            "",
+            `Domains: ${domains}`,
+            `Source HAR sha256: \`${source.sha256 || "not available"}\``,
+            `Baseline snapshot sha256: \`${source.baselineSha256 || "none"}\``,
+            `URL filter: \`${source.urlPattern || "none"}\``,
+            `Report artifact: \`${reportPath}\``,
+            ""
+          ];
+
+          const stepSummary = process.env.GITHUB_STEP_SUMMARY;
+          if (stepSummary) fs.appendFileSync(stepSummary, lines.join("\n") + "\n");
+
+          if ((summary.baselineMismatches || 0) > 0) {
+            console.log(`::warning title=JSO payment-page security headers::${esc("One or more checkout pages or frames changed security headers compared with the approved baseline snapshot.")}`);
+          } else if ((summary.baselineMissing || 0) > 0) {
+            console.log(`::warning title=JSO payment-page security headers::${esc("One or more checkout pages or frames were not found in the approved security-header baseline snapshot.")}`);
+          } else if (pages > 0 && (summary.withCsp || 0) < pages) {
+            console.log(`::warning title=JSO payment-page security headers::${esc("Some matched checkout pages or frames do not expose an enforcing Content-Security-Policy header in the HAR snapshot.")}`);
+          } else if (pages > 0 && (summary.withReportEndpoint || 0) < pages) {
+            console.log(`::warning title=JSO payment-page security headers::${esc("Some matched checkout pages or frames do not expose CSP/NEL/reporting endpoints in the HAR snapshot.")}`);
+          } else {
+            console.log("::notice title=JSO payment-page security headers::Security-header snapshot generated for checkout evidence.");
+          }
+        } catch (error) {
+          console.log(`::warning title=JSO payment-page security headers::Could not summarize security-header snapshot: ${esc(error.message)}`);
+        }
+        NODE
+        }
+
+        args=(
+          "--payment-page-headers-from-har" "${{ inputs.payment-page-har }}"
+          "--payment-page-headers-output" "$report_path"
+          "--json"
+        )
+        if [ -n "${{ inputs.payment-page-headers-baseline }}" ]; then
+          args+=("--payment-page-headers-baseline" "${{ inputs.payment-page-headers-baseline }}")
+        fi
+        if [ -n "${{ inputs.payment-page-url-pattern }}" ]; then
+          args+=("--payment-page-url-pattern" "${{ inputs.payment-page-url-pattern }}")
+        fi
+
+        echo "::group::jso-protector --payment-page-headers-from-har"
+        if npx jso-protector "${args[@]}"; then
+          cat "$report_path"
+          emit_header_summary
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then
+            cat "$report_path"
+            emit_header_summary
+          fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "payment-page-headers-report=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "Runtime incident evidence (optional pre-flight)"
+      id: runtime-incident-evidence
+      if: ${{ inputs.runtime-incident-export != '' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+
+        report_path="${{ inputs.runtime-incident-evidence-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-runtime-incident-evidence.XXXXXX.json)"
+        fi
+
+        emit_runtime_summary() {
+          node - "$report_path" <<'NODE'
+        const fs = require("node:fs");
+        const reportPath = process.argv[2];
+
+        function esc(value) {
+          return String(value || "")
+            .replace(/%/g, "%25")
+            .replace(/\r/g, "%0D")
+            .replace(/\n/g, "%0A");
+        }
+
+        function metric(name, value) {
+          return `| ${name} | ${value == null ? 0 : value} |`;
+        }
+
+        function counts(value) {
+          const entries = Object.entries(value || {}).filter(([, count]) => count > 0);
+          if (!entries.length) return "none";
+          return entries.sort(([a], [b]) => a.localeCompare(b)).map(([key, count]) => `${key}: ${count}`).join(", ");
+        }
+
+        try {
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const summary = report.summary || {};
+          const decision = report.reviewDecision || {};
+          const source = report.source || {};
+          const lines = [
+            "### JSO Runtime Incident Evidence",
+            "",
+            `Status: ${report.ok ? "PASS" : "NEEDS RESPONSE"}`,
+            "",
+            "| Metric | Value |",
+            "|---|---:|",
+            metric("Incidents", summary.incidents),
+            metric("Open/reviewing", summary.unresolved),
+            metric("Open/reviewing high-or-critical", summary.unresolvedHighCritical),
+            metric("Unique BuildIDs", summary.uniqueBuildIds),
+            "",
+            `Decision: ${decision.label || "not available"}`,
+            `Reason: ${decision.reason || "not available"}`,
+            `Next action: ${decision.nextAction || "not available"}`,
+            `Status counts: ${counts(summary.statusCounts)}`,
+            `Severity counts: ${counts(summary.severityCounts)}`,
+            `Source export: \`${source.file || "runtime incidents export"}\``,
+            `Export sha256: \`${source.sha256 || "not available"}\``,
+            `Report artifact: \`${reportPath}\``,
+            ""
+          ];
+
+          const stepSummary = process.env.GITHUB_STEP_SUMMARY;
+          if (stepSummary) fs.appendFileSync(stepSummary, lines.join("\n") + "\n");
+
+          if ((summary.unresolvedHighCritical || 0) > 0) {
+            console.log(`::error title=JSO runtime incident evidence::${esc(decision.nextAction || decision.reason || "Active high/critical runtime incidents need response.")}`);
+          } else if ((summary.unresolved || 0) > 0) {
+            console.log(`::warning title=JSO runtime incident evidence::${esc(decision.nextAction || decision.reason || "Open or reviewing runtime incidents need triage.")}`);
+          } else {
+            console.log("::notice title=JSO runtime incident evidence::Runtime incident export has no unresolved incidents requiring response.");
+          }
+        } catch (error) {
+          console.log(`::warning title=JSO runtime incident evidence::Could not summarize runtime incident evidence report: ${esc(error.message)}`);
+        }
+        NODE
+        }
+
+        echo "::group::jso-protector --runtime-incident-evidence"
+        if npx jso-protector \
+          --runtime-incident-evidence "${{ inputs.runtime-incident-export }}" \
+          --runtime-incident-evidence-output "$report_path" \
+          --json; then
+          cat "$report_path"
+          emit_runtime_summary
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then
+            cat "$report_path"
+            emit_runtime_summary
+          fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "runtime-incident-evidence-report=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "Run protection"
+      id: run
+      shell: bash
+      env:
+        JSO_API_KEY: ${{ inputs.api-key }}
+        JSO_API_PASSWORD: ${{ inputs.api-password }}
+        JSO_ENDPOINT: ${{ inputs.endpoint }}
+        JSO_WATERMARK_KEY: ${{ inputs.watermark-key }}
+      run: |
+        set -euo pipefail
+        label="${{ inputs.label }}"
+        if [ -z "$label" ]; then label="${{ github.sha }}"; fi
+
+        args=()
+        if [ -n "${{ inputs.config }}" ]; then
+          args+=("--config" "${{ inputs.config }}")
+        else
+          args+=("--input" "${{ inputs.input }}" "--output" "${{ inputs.output }}" "--preset" "${{ inputs.preset }}")
+        fi
+        args+=("--label" "$label" "--json")
+
+        # Opt-in: protect on the runner instead of uploading source. Guarded on
+        # the runner OS because jso-local ships in the Windows desktop archive;
+        # failing loudly here beats a confusing "executable not found" after the
+        # job has already spent time building.
+        if [ "${{ inputs.local }}" = "true" ]; then
+          if [ "${{ runner.os }}" != "Windows" ]; then
+            echo "::error::local: true requires a Windows runner - jso-local ships in the Windows desktop download. Use runs-on: windows-latest, or drop the local input to protect through the hosted API."
+            exit 2
+          fi
+          args+=("--local")
+          if [ -n "${{ inputs.local-exe }}" ]; then
+            args+=("--local-exe" "${{ inputs.local-exe }}")
+          fi
+        fi
+
+        report_path="${{ inputs.report }}"
+        if [ -n "$report_path" ]; then
+          args+=("--report" "$report_path")
+        else
+          report_path="$(mktemp -t jso-report.XXXXXX.json)"
+          args+=("--report" "$report_path")
+        fi
+
+        # Manifest path: needed when we want a .sig or source-map evidence.
+        manifest_path="${{ inputs.manifest }}"
+        if [ -z "$manifest_path" ] && { [ -n "${{ inputs.sign-release-key }}" ] || [ "${{ inputs.source-map-evidence }}" = "true" ] || [ "${{ inputs.pci-dss-v4-evidence }}" = "true" ]; }; then
+          # Auto-pick a manifest path next to the output so .sig/evidence has somewhere to go.
+          manifest_path="${{ inputs.output }}/build.manifest.json"
+        fi
+        if [ -n "$manifest_path" ]; then
+          args+=("--manifest" "$manifest_path")
+        fi
+
+        # Opt-in: AI pre-check.
+        if [ "${{ inputs.ai-precheck }}" = "true" ]; then
+          args+=("--ai-precheck" "--ai-precheck-fail-on" "${{ inputs.ai-precheck-fail-on }}")
+        fi
+
+        # Opt-in: watermarking. Tag may contain ${{ github.sha }} etc.
+        if [ -n "${{ inputs.watermark }}" ]; then
+          if [ -z "${{ inputs.watermark-key }}" ]; then
+            echo "::error::watermark input is set but watermark-key is not. Pass secrets.JSO_WATERMARK_KEY."
+            exit 2
+          fi
+          args+=("--watermark" "${{ inputs.watermark }}")
+          # The key is wired via JSO_WATERMARK_KEY env above so it doesn't appear
+          # in command-line args or step logs.
+        fi
+
+        # Opt-in: signed release attestation.
+        if [ -n "${{ inputs.sign-release-key }}" ]; then
+          if [ ! -f "${{ inputs.sign-release-key }}" ]; then
+            echo "::error::sign-release-key file not found: ${{ inputs.sign-release-key }}"
+            exit 2
+          fi
+          args+=("--sign-release" "${{ inputs.sign-release-key }}")
+        fi
+
+        echo "::group::jso-protector"
+        npx jso-protector "${args[@]}"
+        echo "::endgroup::"
+
+        # Surface BuildId and PolymorphismFingerprint as step outputs. The CLI
+        # writes the full API report to --report; node parses it.
+        build_id="$(node -e "try{const r=require('$report_path'); process.stdout.write((r.Report&&r.Report.BuildId)||'')}catch(_){}")"
+        fp="$(node -e "try{const r=require('$report_path'); process.stdout.write((r.Report&&r.Report.PolymorphismFingerprint)||'')}catch(_){}")"
+        echo "build-id=$build_id" >> "$GITHUB_OUTPUT"
+        echo "polymorphism-fingerprint=$fp" >> "$GITHUB_OUTPUT"
+        echo "report-path=$report_path" >> "$GITHUB_OUTPUT"
+        echo "watermark-tag=${{ inputs.watermark }}" >> "$GITHUB_OUTPUT"
+        echo "manifest-path=$manifest_path" >> "$GITHUB_OUTPUT"
+        if [ -n "$manifest_path" ] && [ -f "$manifest_path.sig" ]; then
+          echo "release-sig-path=$manifest_path.sig" >> "$GITHUB_OUTPUT"
+        else
+          echo "release-sig-path=" >> "$GITHUB_OUTPUT"
+        fi
+        echo "JSO build $build_id (fp=$fp) tagged with label $label"
+        if [ -n "${{ inputs.watermark }}" ]; then echo "  watermark: ${{ inputs.watermark }}"; fi
+        if [ -n "$manifest_path" ] && [ -f "$manifest_path.sig" ]; then echo "  signed attestation: $manifest_path.sig"; fi
+
+    - name: "Source-map evidence (optional post-protection)"
+      id: source-map-evidence
+      if: ${{ inputs.source-map-evidence == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        manifest_path="${{ steps.run.outputs.manifest-path }}"
+        if [ -z "$manifest_path" ]; then
+          echo "::error::source-map-evidence requires a manifest. Set the manifest input or allow the action to auto-create one."
+          exit 2
+        fi
+
+        report_path="${{ inputs.source-map-evidence-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-source-map-evidence.XXXXXX.json)"
+        fi
+
+        echo "::group::jso-protector --source-map-evidence"
+        if npx jso-protector --source-map-evidence "$manifest_path" --source-map-evidence-output "$report_path" --json; then
+          cat "$report_path"
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then cat "$report_path"; fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "source-map-evidence-report=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "PCI DSS v4 evidence (optional post-protection)"
+      id: pci-dss-v4-evidence
+      if: ${{ inputs.pci-dss-v4-evidence == 'true' }}
+      shell: bash
+      env:
+        JSO_WATERMARK_KEY: ${{ inputs.watermark-key }}
+      run: |
+        set -euo pipefail
+        manifest_path="${{ steps.run.outputs.manifest-path }}"
+        if [ -z "$manifest_path" ]; then
+          echo "::error::pci-dss-v4-evidence requires a manifest. Set the manifest input or allow the action to auto-create one."
+          exit 2
+        fi
+
+        evidence_manifest="$manifest_path"
+        if [ -f "$manifest_path.sig" ]; then
+          evidence_manifest="$manifest_path.sig"
+        fi
+        if [ ! -f "$evidence_manifest" ]; then
+          echo "::error::PCI DSS v4 evidence manifest not found: $evidence_manifest"
+          exit 2
+        fi
+
+        report_path="${{ inputs.pci-dss-v4-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-pci-dss-v4.XXXXXX.md)"
+        fi
+        json_path="${{ inputs.pci-dss-v4-json-report }}"
+        if [ -z "$json_path" ]; then
+          json_path="$(mktemp -t jso-pci-dss-v4.XXXXXX.json)"
+        fi
+        mkdir -p "$(dirname "$report_path")" "$(dirname "$json_path")"
+
+        emit_pci_summary() {
+          node - "$json_path" "$report_path" <<'NODE'
+        const fs = require("node:fs");
+        const jsonPath = process.argv[2];
+        const markdownPath = process.argv[3];
+
+        function esc(value) {
+          return String(value || "")
+            .replace(/%/g, "%25")
+            .replace(/\r/g, "%0D")
+            .replace(/\n/g, "%0A");
+        }
+
+        function metric(name, value) {
+          return `| ${name} | ${value == null ? 0 : value} |`;
+        }
+
+        try {
+          const report = JSON.parse(fs.readFileSync(jsonPath, "utf8"));
+          const summary = report.summary || {};
+          const lines = [
+            "### JSO PCI DSS v4 Evidence",
+            "",
+            `Status: ${summary.exitCode === 0 ? "PASS" : "NEEDS REVIEW"}`,
+            "",
+            "| Metric | Value |",
+            "|---|---:|",
+            metric("Sub-requirements", summary.subRequirements),
+            metric("Pass", summary.pass),
+            metric("Partial", summary.partial),
+            metric("Fail", summary.fail),
+            metric("Not inspected", summary.not_inspected),
+            "",
+            `Signature: ${summary.signatureVerified ? "verified" : (summary.signatureKind || "not available")}`,
+            `BuildID: ${report.buildId || "not available"}`,
+            `Markdown report: \`${markdownPath}\``,
+            `JSON report: \`${jsonPath}\``,
+            ""
+          ];
+
+          const stepSummary = process.env.GITHUB_STEP_SUMMARY;
+          if (stepSummary) fs.appendFileSync(stepSummary, lines.join("\n") + "\n");
+
+          if (summary.exitCode === 0) {
+            console.log("::notice title=JSO PCI DSS v4 evidence::PCI DSS v4 evidence report is fully evidenced.");
+          } else if (summary.exitCode === 2) {
+            console.log(`::error title=JSO PCI DSS v4 evidence::${esc("PCI DSS v4 evidence is incomplete because the manifest is unsigned or unreadable. Sign the manifest or review the generated report.")}`);
+          } else {
+            console.log(`::error title=JSO PCI DSS v4 evidence::${esc("PCI DSS v4 evidence has partial, failed, or not-inspected controls. Review the generated report before release handoff.")}`);
+          }
+        } catch (error) {
+          console.log(`::warning title=JSO PCI DSS v4 evidence::Could not summarize PCI DSS v4 report: ${esc(error.message)}`);
+        }
+        NODE
+        }
+
+        root_path="${{ inputs.pci-dss-v4-root }}"
+        if [ -z "$root_path" ]; then
+          root_path="${{ inputs.output }}"
+        fi
+
+        args=(
+          "compliance" "pci-dss-v4"
+          "--manifest" "$evidence_manifest"
+          "--root" "$root_path"
+          "--output" "$report_path"
+          "--json-output" "$json_path"
+        )
+        if [ -n "${{ inputs.pci-dss-v4-organization }}" ]; then
+          args+=("--organization" "${{ inputs.pci-dss-v4-organization }}")
+        fi
+        if [ -n "${{ inputs.pci-dss-v4-beacon-url }}" ]; then
+          args+=("--beacon-url" "${{ inputs.pci-dss-v4-beacon-url }}")
+        fi
+        if [ -n "${{ inputs.pci-dss-v4-siem }}" ]; then
+          args+=("--siem" "${{ inputs.pci-dss-v4-siem }}")
+        fi
+        if [ -n "${{ inputs.payment-script-inventory }}" ]; then
+          args+=("--script-inventory" "${{ inputs.payment-script-inventory }}")
+        fi
+        audit_report="${{ steps.script-inventory-audit.outputs.script-inventory-audit-report }}"
+        if [ -n "$audit_report" ]; then
+          args+=("--script-inventory-audit" "$audit_report")
+        fi
+        header_report="${{ steps.payment-page-headers.outputs.payment-page-headers-report }}"
+        if [ -n "$header_report" ]; then
+          args+=("--payment-page-headers" "$header_report")
+        fi
+        if [ -n "${{ inputs.runtime-incident-export }}" ]; then
+          args+=("--runtime-incidents" "${{ inputs.runtime-incident-export }}")
+        fi
+        if [ "${{ inputs.pci-dss-v4-allow-unsigned }}" = "true" ]; then
+          args+=("--allow-unsigned")
+        fi
+
+        echo "::group::jso-protector compliance pci-dss-v4"
+        if npx jso-protector "${args[@]}"; then
+          cat "$report_path"
+          emit_pci_summary
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then cat "$report_path"; fi
+          if [ -f "$json_path" ]; then emit_pci_summary; fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "pci-dss-v4-report=$report_path" >> "$GITHUB_OUTPUT"
+        echo "pci-dss-v4-json-report=$json_path" >> "$GITHUB_OUTPUT"
+
+    - name: "VM proof pack (optional post-protection)"
+      id: vm-proof-pack
+      if: ${{ inputs.vm-proof-pack == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        api_report="${{ steps.run.outputs.report-path }}"
+        if [ -z "$api_report" ] || [ ! -f "$api_report" ]; then
+          echo "::error::vm-proof-pack requires the saved API report from the protection step."
+          exit 2
+        fi
+
+        report_path="${{ inputs.vm-proof-pack-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-vm-proof-pack.XXXXXX.json)"
+        fi
+
+        emit_vm_summary() {
+          node - "$report_path" <<'NODE'
+        const fs = require("node:fs");
+        const reportPath = process.argv[2];
+
+        function esc(value) {
+          return String(value || "")
+            .replace(/%/g, "%25")
+            .replace(/\r/g, "%0D")
+            .replace(/\n/g, "%0A");
+        }
+
+        function metric(name, value) {
+          return `| ${name} | ${value == null ? 0 : value} |`;
+        }
+
+        try {
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const decision = report.reviewDecision || {};
+          const evidence = report.evidence || {};
+          const proof = report.proof || {};
+          const proofSummary = proof.summary || {};
+          const lines = [
+            "### JSO VM Proof Pack",
+            "",
+            `Status: ${report.ok ? "PASS" : "NEEDS REVIEW"}`,
+            "",
+            "| Metric | Value |",
+            "|---|---:|",
+            metric("VM requested", proofSummary.requested ? "yes" : "no"),
+            metric("VM applied", proofSummary.applied ? "yes" : "no"),
+            metric("Virtualized functions", evidence.virtualizedCount),
+            metric("VM warnings", evidence.warningCount),
+            "",
+            `Decision: ${decision.label || "not available"}`,
+            `Reason: ${decision.reason || "not available"}`,
+            `Next action: ${decision.nextAction || "not available"}`,
+            `BuildID: ${report.buildId || "not available"}`,
+            `Report artifact: \`${reportPath}\``,
+            ""
+          ];
+
+          const stepSummary = process.env.GITHUB_STEP_SUMMARY;
+          if (stepSummary) fs.appendFileSync(stepSummary, lines.join("\n") + "\n");
+
+          if (!report.ok) {
+            console.log(`::error title=JSO VM proof pack::${esc(decision.nextAction || decision.reason || "Required VM proof evidence is missing.")}`);
+          } else if (decision.manualReviewRequired) {
+            console.log(`::warning title=JSO VM proof pack::${esc(decision.nextAction || decision.reason || "VM proof pack is ready for manual review.")}`);
+          } else {
+            console.log("::notice title=JSO VM proof pack::VM proof pack is ready.");
+          }
+        } catch (error) {
+          console.log(`::warning title=JSO VM proof pack::Could not summarize VM proof pack: ${esc(error.message)}`);
+        }
+        NODE
+        }
+
+        echo "::group::jso-protector --vm-proof-pack"
+        if npx jso-protector \
+          --vm-proof-pack "$api_report" \
+          --vm-proof-output "$report_path" \
+          --min-vm-functions "${{ inputs.min-vm-functions }}" \
+          --json; then
+          cat "$report_path"
+          emit_vm_summary
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then
+            cat "$report_path"
+            emit_vm_summary
+          fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "vm-proof-pack-report=$report_path" >> "$GITHUB_OUTPUT"
+
+    - name: "AI-resistance evidence (optional post-protection)"
+      id: ai-resistance-evidence
+      if: ${{ inputs.ai-resistance-evidence == 'true' }}
+      shell: bash
+      run: |
+        set -euo pipefail
+        api_report="${{ steps.run.outputs.report-path }}"
+        if [ -z "$api_report" ] || [ ! -f "$api_report" ]; then
+          echo "::error::ai-resistance-evidence requires the saved API report from the protection step."
+          exit 2
+        fi
+
+        report_path="${{ inputs.ai-resistance-evidence-report }}"
+        if [ -z "$report_path" ]; then
+          report_path="$(mktemp -t jso-ai-resistance-evidence.XXXXXX.json)"
+        fi
+
+        emit_ai_summary() {
+          node - "$report_path" <<'NODE'
+        const fs = require("node:fs");
+        const reportPath = process.argv[2];
+
+        function esc(value) {
+          return String(value || "")
+            .replace(/%/g, "%25")
+            .replace(/\r/g, "%0D")
+            .replace(/\n/g, "%0A");
+        }
+
+        function metric(name, value) {
+          return `| ${name} | ${value == null ? 0 : value} |`;
+        }
+
+        try {
+          const report = JSON.parse(fs.readFileSync(reportPath, "utf8"));
+          const decision = report.reviewDecision || {};
+          const evidence = report.evidence || {};
+          const vmProof = evidence.vmProof || {};
+          const runtimeDefense = evidence.runtimeDefense || {};
+          const sourceFreeReviewData = evidence.sourceFreeReviewData || {};
+          const lines = [
+            "### JSO AI-Resistance Evidence",
+            "",
+            `Status: ${report.ok ? "PASS" : "NEEDS REVIEW"}`,
+            `Score status: ${report.scoreStatus || "not available"}`,
+            "",
+            "| Metric | Value |",
+            "|---|---:|",
+            metric("Strong options", Array.isArray(evidence.strongOptions) ? evidence.strongOptions.length : 0),
+            metric("VM proof present", vmProof.present ? "yes" : "no"),
+            metric("VM proof passing", vmProof.ok ? "yes" : "no"),
+            metric("Runtime defense evidence", runtimeDefense.present ? "yes" : "no"),
+            metric("Source-free review data", sourceFreeReviewData.present ? "yes" : "no"),
+            "",
+            `Decision: ${decision.label || "not available"}`,
+            `Reason: ${decision.reason || "not available"}`,
+            `Next action: ${decision.nextAction || "not available"}`,
+            `BuildID: ${report.buildId || "not available"}`,
+            `Report artifact: \`${reportPath}\``,
+            ""
+          ];
+
+          const stepSummary = process.env.GITHUB_STEP_SUMMARY;
+          if (stepSummary) fs.appendFileSync(stepSummary, lines.join("\n") + "\n");
+
+          if (!report.ok) {
+            console.log(`::error title=JSO AI-resistance evidence::${esc(decision.nextAction || decision.reason || "Required AI-resistance evidence is missing.")}`);
+          } else if (decision.manualReviewRequired) {
+            console.log(`::warning title=JSO AI-resistance evidence::${esc(decision.nextAction || decision.reason || "AI-resistance evidence is ready for manual review.")}`);
+          } else {
+            console.log("::notice title=JSO AI-resistance evidence::AI-resistance evidence is ready.");
+          }
+        } catch (error) {
+          console.log(`::warning title=JSO AI-resistance evidence::Could not summarize AI-resistance evidence report: ${esc(error.message)}`);
+        }
+        NODE
+        }
+
+        args=(
+          "--ai-resistance-evidence" "$api_report"
+          "--ai-resistance-evidence-output" "$report_path"
+          "--min-vm-functions" "${{ inputs.min-vm-functions }}"
+          "--json"
+        )
+        if [ "${{ inputs.ai-resistance-require-vm-proof }}" = "true" ]; then
+          args+=("--require-vm-proof")
+        fi
+
+        echo "::group::jso-protector --ai-resistance-evidence"
+        if npx jso-protector "${args[@]}"; then
+          cat "$report_path"
+          emit_ai_summary
+          echo "::endgroup::"
+        else
+          status=$?
+          if [ -f "$report_path" ]; then
+            cat "$report_path"
+            emit_ai_summary
+          fi
+          echo "::endgroup::"
+          exit "$status"
+        fi
+        echo "ai-resistance-evidence-report=$report_path" >> "$GITHUB_OUTPUT"
