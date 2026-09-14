@@ -1,4 +1,4 @@
-name: "JavaScript Obfuscator"
+name: "JavaScriptObfuscator.com"
 description: "Protect built JavaScript assets with JavaScript Obfuscator. Wraps the jso-protector npm CLI; tags every build with the commit SHA; optional AI compatibility gate, source-free release evidence, runtime incident evidence, payment-page script/header evidence, HMAC watermark, and Ed25519-signed release attestation."
 author: "JavaScript Obfuscator"
 branding:
