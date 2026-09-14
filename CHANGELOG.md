@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.4.2 - 2026-09-14
+
+- Shortened the action description to under 125 characters, the GitHub Marketplace limit (it was 312 and blocked publishing). The action checker now fails on a description of 125 characters or more.
+
 ## 0.4.1 - 2026-09-14
 
 **Fixes the action failing to load on every runner.** Five input descriptions contained `${{ secrets.* }}` / `${{ github.* }}` expressions. The runner evaluates action metadata and has no `secrets` or `github` context there, so it rejected `action.yml` with "Unrecognized named-value: 'secrets'" before any step ran. Every release up to and including 0.4.0 was affected; the static checks passed because they parse the file without running it.

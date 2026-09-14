@@ -87,6 +87,14 @@ for (const k of ["name", "description", "inputs", "outputs", "runs"]) {
     if (!(k in action)) fail("missing top-level key: " + k);
 }
 
+// 1b. Marketplace refuses to publish when the top-level description is 125
+//     characters or more ("Description must be less than 125 characters").
+//     v0.4.1's ~290-character description passed every check here and was
+//     only caught on the Publish screen.
+if (typeof action.description === "string" && action.description.length >= 125) {
+    fail("description is " + action.description.length + " characters; GitHub Marketplace requires fewer than 125");
+}
+
 // 2. runs.using + runs.steps
 if (action.runs) {
     if (action.runs.using !== "composite") fail("runs.using must be 'composite' (got " + JSON.stringify(action.runs.using) + ")");
