@@ -111,7 +111,17 @@ for (let i = 0; i < stepShapes.length; i++) {
 for (const [name, def] of Object.entries(action.inputs || {})) {
     if (!def || typeof def !== "object") { fail("inputs." + name + ": malformed"); continue; }
     if (!def.description) fail("inputs." + name + ": missing description (Marketplace requirement)");
-}
+    // The runner evaluates expressions in action metadata and has no `secrets`
+    // or `github` context there, so one `${{ secrets.X }}` inside a description
+    // made the whole action fail to load ("Unrecognized named-value: 'secrets'")
+    // from v0.1 through v0.4.0 - while this structural check passed, because it
+    // never ran the action. Name the secret in plain text instead.
+    if (def.description && /\$\{\{/.test(String(def.description))) {
+        fail("inputs." + name + ": description contains a ${{ }} expression, which makes the runner reject action.yml");
+    }
+    if (def.default && /\$\{\{\s*(secrets|github)\./.test(String(def.default))) {
+        fail("inputs." + name + ": default uses a secrets/github expression, which the runner cannot evaluate in action metadata");
+    }}
 
 // 5. outputs: every output has a description AND a value
 for (const [name, def] of Object.entries(action.outputs || {})) {

@@ -31,11 +31,11 @@ inputs:
     required: false
     default: ""
   api-key:
-    description: "Optional base64-encoded JSO API key from ${{ secrets.JSO_API_KEY }}. Leave unset to run on the anonymous free tier (preset free, 5 runs per hour per IP); a free account raises that to 100 per hour, a paid key unlocks the paid presets."
+    description: "Optional base64-encoded JSO API key from the JSO_API_KEY secret. Leave unset to run on the anonymous free tier (preset free, 5 runs per hour per IP); a free account raises that to 100 per hour, a paid key unlocks the paid presets."
     required: false
     default: ""
   api-password:
-    description: "Optional base64-encoded JSO API password from ${{ secrets.JSO_API_PASSWORD }}. Set together with api-key."
+    description: "Optional base64-encoded JSO API password from the JSO_API_PASSWORD secret. Set together with api-key."
     required: false
     default: ""
   endpoint:
@@ -43,7 +43,7 @@ inputs:
     required: false
     default: "https://javascriptobfuscator.com/HttpApi.ashx"
   label:
-    description: "Release label tagged on the request. Defaults to ${{ github.sha }} so the JSO audit log groups builds by commit."
+    description: "Release label tagged on the request. Defaults to github.sha so the JSO audit log groups builds by commit."
     required: false
     default: ""
   cli-version:
@@ -196,11 +196,11 @@ inputs:
     required: false
     default: "false"
   watermark:
-    description: "Tag to embed as an HMAC-SHA256 watermark in every protected file. Common: ${{ github.sha }} or ${{ github.run_id }}. Leave blank to skip watermarking."
+    description: "Tag to embed as an HMAC-SHA256 watermark in every protected file. Common: github.sha or github.run_id. Leave blank to skip watermarking."
     required: false
     default: ""
   watermark-key:
-    description: "HMAC secret for the watermark. Recommended source: ${{ secrets.JSO_WATERMARK_KEY }}. Required when watermark is set."
+    description: "HMAC secret for the watermark. Recommended source: the JSO_WATERMARK_KEY secret. Required when watermark is set."
     required: false
     default: ""
   sign-release-key:

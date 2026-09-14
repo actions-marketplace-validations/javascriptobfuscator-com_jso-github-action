@@ -1,5 +1,13 @@
 # Change Log
 
+## 0.4.1 - 2026-09-14
+
+**Fixes the action failing to load on every runner.** Five input descriptions contained `${{ secrets.* }}` / `${{ github.* }}` expressions. The runner evaluates action metadata and has no `secrets` or `github` context there, so it rejected `action.yml` with "Unrecognized named-value: 'secrets'" before any step ran. Every release up to and including 0.4.0 was affected; the static checks passed because they parse the file without running it.
+
+- The descriptions now name the secrets in plain text (for example "the JSO_API_KEY secret").
+- The action checker now fails on any `${{ }}` in an input description, and on a `secrets`/`github` expression in an input default.
+- A new `smoke` workflow runs the action itself on an ubuntu runner with no secrets on every push to main.
+
 ## 0.4.0 - 2026-09-14
 
 Works on the free tier with no account. Upgrading from 0.3 changes one default.
