@@ -15,9 +15,9 @@ inputs:
     required: true
     default: "dist-protected"
   preset:
-    description: "Protection preset: standard | balanced | maximum."
+    description: "Protection preset: free | standard | balanced | maximum. free works with no account; standard, balanced and maximum use paid features and need a paid plan's api-key."
     required: false
-    default: "balanced"
+    default: "free"
   local:
     description: "Protect on the runner instead of sending source to the hosted API. Windows runners only: it drives cli/jso-local.exe from the desktop download, which a previous step must place on the runner. A source-free plan check still runs."
     required: false
@@ -31,11 +31,13 @@ inputs:
     required: false
     default: ""
   api-key:
-    description: "Base64-encoded JSO API key. Recommended source: ${{ secrets.JSO_API_KEY }}."
-    required: true
+    description: "Optional base64-encoded JSO API key from ${{ secrets.JSO_API_KEY }}. Leave unset to run on the anonymous free tier (preset free, 5 runs per hour per IP); a free account raises that to 100 per hour, a paid key unlocks the paid presets."
+    required: false
+    default: ""
   api-password:
-    description: "Base64-encoded JSO API password. Recommended source: ${{ secrets.JSO_API_PASSWORD }}."
-    required: true
+    description: "Optional base64-encoded JSO API password from ${{ secrets.JSO_API_PASSWORD }}. Set together with api-key."
+    required: false
+    default: ""
   endpoint:
     description: "HTTP API endpoint. Override only for staging or self-hosted endpoints."
     required: false
@@ -281,7 +283,12 @@ runs:
         # 'warn' mode: run the estimate but do not propagate exit 1 to the
         # workflow. 'true' (default for opt-in) lets a quota-exhausted
         # build fail fast at the gate.
-        args=("--endpoint" "${{ inputs.endpoint }}" "--api-key" "${{ inputs.api-key }}" "--api-password" "${{ inputs.api-password }}")
+        args=("--endpoint" "${{ inputs.endpoint }}")
+        # An empty --api-key makes the CLI stop with "Missing value"; unset keys
+        # mean the anonymous free tier, which the CLI selects on its own.
+        if [ -n "${{ inputs.api-key }}" ]; then
+          args+=("--api-key" "${{ inputs.api-key }}" "--api-password" "${{ inputs.api-password }}")
+        fi
         if [ -n "${{ inputs.config }}" ]; then
           args+=("--config" "${{ inputs.config }}")
         else

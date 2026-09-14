@@ -19,13 +19,16 @@ jobs:
           node-version: 20
       - run: npm ci && npm run build
       - id: protect
-        uses: richtexteditor/jso-github-action@v0.3
+        uses: javascriptobfuscator-com/jso-github-action@v0.4
         with:
           input: dist
           output: dist-protected
-          preset: balanced
-          api-key: ${{ secrets.JSO_API_KEY }}
-          api-password: ${{ secrets.JSO_API_PASSWORD }}
+          # No account needed: this runs the free preset on the anonymous tier
+          # (5 runs per hour per IP). For regular CI, add a free account's key
+          # (100 runs per hour); a paid key also unlocks standard, balanced and maximum:
+          #   preset: balanced
+          #   api-key: ${{ secrets.JSO_API_KEY }}
+          #   api-password: ${{ secrets.JSO_API_PASSWORD }}
           report: ${{ runner.temp }}/jso-report.json
       - run: |
           echo "BuildId: ${{ steps.protect.outputs.build-id }}"
@@ -44,12 +47,12 @@ jobs:
 |---|---|---|---|
 | `input` | yes | `dist` | Folder of built JS to protect. |
 | `output` | yes | `dist-protected` | Where protected JS is written. |
-| `preset` | no | `balanced` | `standard`, `balanced`, or `maximum`. |
+| `preset` | no | `free` | `free` works with no account. `standard`, `balanced` and `maximum` use paid features and need a paid plan's key. |
 | `config` | no | none | Path to `jso.config.json`. Overrides `input`/`output`/`preset`. |
 | `local` | no | `false` | Protect on the runner instead of uploading source. **Windows runners only** — see below. |
 | `local-exe` | no | none | Path to `cli/jso-local.exe` when `local: true`. |
-| `api-key` | yes | secret | Always from a GitHub secret: `${{ secrets.JSO_API_KEY }}`. |
-| `api-password` | yes | secret | Always from a GitHub secret: `${{ secrets.JSO_API_PASSWORD }}`. |
+| `api-key` | no | none | Leave unset for the anonymous free tier (5 runs per hour per IP). When set, always from a GitHub secret: `${{ secrets.JSO_API_KEY }}`. A free account gives 100 runs per hour; a paid key unlocks the paid presets. |
+| `api-password` | no | none | Set together with `api-key`, from a GitHub secret: `${{ secrets.JSO_API_PASSWORD }}`. |
 | `endpoint` | no | `https://javascriptobfuscator.com/HttpApi.ashx` | Override only for staging or self-hosted endpoints. |
 | `label` | no | `${{ github.sha }}` | Tagged on the API request. Groups audit-log entries by commit. |
 | `cli-version` | no | `latest` | Pin for reproducible builds: e.g. `0.1.1`. |
@@ -141,7 +144,7 @@ jobs:
           curl -sSL -o jso.zip "https://javascriptobfuscator.com/download/javascriptobfuscator.zip?v=3.4.2"
           unzip -q jso.zip -d jso
 
-      - uses: richtexteditor/jso-github-action@v0.3
+      - uses: javascriptobfuscator-com/jso-github-action@v0.4
         with:
           input: dist
           output: dist-protected
@@ -165,7 +168,7 @@ When a workflow is replacing `javascript-obfuscator`, JS-Confuser, Jscrambler, o
 
 ```yaml
 - id: protect
-  uses: richtexteditor/jso-github-action@v0.3
+  uses: javascriptobfuscator-com/jso-github-action@v0.4
   with:
     config: jso.config.json
     api-key: ${{ secrets.JSO_API_KEY }}
@@ -193,7 +196,7 @@ When Dashboard Monitoring exports runtime incidents for a checkout, activation, 
 
 ```yaml
 - id: protect
-  uses: richtexteditor/jso-github-action@v0.3
+  uses: javascriptobfuscator-com/jso-github-action@v0.4
   with:
     config: jso.config.json
     api-key: ${{ secrets.JSO_API_KEY }}
@@ -211,7 +214,7 @@ When reviewers need VM or AI-resistance evidence, enable the post-protection pac
 
 ```yaml
 - id: protect
-  uses: richtexteditor/jso-github-action@v0.3
+  uses: javascriptobfuscator-com/jso-github-action@v0.4
   with:
     config: jso.config.json
     api-key: ${{ secrets.JSO_API_KEY }}
@@ -246,7 +249,7 @@ mismatches, or newly observed checkout pages.
 
 ```yaml
 - id: protect
-  uses: richtexteditor/jso-github-action@v0.3
+  uses: javascriptobfuscator-com/jso-github-action@v0.4
   with:
     config: jso.config.json
     api-key: ${{ secrets.JSO_API_KEY }}
@@ -302,7 +305,7 @@ All four pieces are off by default. Add any combination to your workflow.
 
 ```yaml
 - name: Protect with supply-chain integrity
-  uses: richtexteditor/jso-github-action@v0.3
+  uses: javascriptobfuscator-com/jso-github-action@v0.4
   with:
     input: dist
     output: dist-protected

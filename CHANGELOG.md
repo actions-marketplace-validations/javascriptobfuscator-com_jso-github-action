@@ -1,6 +1,15 @@
 # Change Log
 
-## 0.3.0 - Unreleased
+## 0.4.0 - 2026-09-14
+
+Works on the free tier with no account. Upgrading from 0.3 changes one default.
+
+- `api-key` and `api-password` are now optional. When both are unset the action runs on the anonymous free tier (20 files / 200 KB per request, 5 runs per hour per IP). Add a free account's key for 100 runs per hour, or a paid key for the paid presets.
+- **`preset` now defaults to `free`** (was `balanced`). `standard`, `balanced` and `maximum` use plan-gated features (self compression, deep obfuscation, member renaming) and fail on a free or anonymous run, so the old default broke every first run without a paid key. Workflows that relied on the default and have a paid key should set `preset: balanced` explicitly.
+- The optional `estimate` pre-flight only passes `--api-key`/`--api-password` when they are set; empty values made the CLI stop with "Missing value for --api-key".
+- The action now lives at `javascriptobfuscator-com/jso-github-action`. The previous `richtexteditor/jso-github-action` address redirects.
+
+## 0.3.0 - 2026-09-02
 
 Migration preflight and release-evidence surface for teams replacing local JavaScript obfuscators.
 
