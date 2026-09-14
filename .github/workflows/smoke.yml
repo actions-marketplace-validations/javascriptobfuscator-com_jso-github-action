@@ -1,0 +1,31 @@
+name: smoke
+# Runs the action itself with NO secrets, so the "works with no account" claim in
+# the README and the Marketplace listing is exercised end to end on a real runner.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+jobs:
+  anonymous-free-tier:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Build a one-file dist
+        run: |
+          mkdir -p smoke-dist
+          printf 'function add(a,b){return a+b}\nconsole.log("sum=" + add(2,3));\n' > smoke-dist/app.js
+      - id: protect
+        uses: ./
+        with:
+          input: smoke-dist
+          output: smoke-protected
+      - name: Protected output exists and still runs
+        run: |
+          test -s smoke-protected/app.js
+          out="$(node smoke-protected/app.js)"
+          echo "$out"
+          test "$out" = "sum=5"
+          ! cmp -s smoke-dist/app.js smoke-protected/app.js
