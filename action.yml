@@ -1,5 +1,5 @@
 name: "JavaScriptObfuscator.com"
-description: "Obfuscate built JavaScript in CI with JavaScriptObfuscator.com. Runs with no account on the free preset."
+description: "JavaScript obfuscator for CI: protects built JavaScript with JavaScriptObfuscator.com. No account needed on the free preset."
 author: "JavaScript Obfuscator"
 branding:
   icon: "shield"
