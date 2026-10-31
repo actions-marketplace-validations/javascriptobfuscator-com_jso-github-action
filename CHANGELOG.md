@@ -1,5 +1,9 @@
 # Change Log
 
+## 0.4.3 - 2026-09-23
+
+- The action description now starts with "JavaScript obfuscator". GitHub Marketplace search matches whole words in the name and description, and neither contained "obfuscator" as a word ("JavaScriptObfuscator.com" is one token), so the listing did not appear for "javascript obfuscator" or "obfuscator" -- only for "obfuscate". Metadata only; no behaviour change.
+
 ## 0.4.2 - 2026-09-14
 
 - Shortened the action description to under 125 characters, the GitHub Marketplace limit (it was 312 and blocked publishing). The action checker now fails on a description of 125 characters or more.
